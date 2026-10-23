@@ -17,7 +17,7 @@
 
 .tablewrap { overflow-x: auto; max-height: 65vh; border: 1px solid #888; }
 table.results { border-collapse: collapse; width: 100%; min-width: 980px; font-size: 13px; }
-table.results th { position: sticky; top: 0; background: #d9d9d9; color: #000; border: 1px solid #000; padding: 6px 4px; z-index: 1; white-space: nowrap; }
+table.results th { position: sticky; top: 0; background: #9ac0a8; color: #000; border: 1px solid #000; padding: 6px 4px; z-index: 1; white-space: nowrap; }
 table.results td { border: 1px solid #000; padding: 0; }
 table.results td.c { text-align: center; padding: 0 6px; }
 table.results td.wide { min-width: 260px; }
@@ -101,7 +101,7 @@ table.results td.reg { box-shadow: inset 3px 0 0 #2dd36f; }
   .card { break-inside: avoid; border: 0; padding: 0; }
   table.results th { position: static; }
   .bars-wrap > div { overflow: visible !important; }
-  body { background: #fff; color: #000; }
+  body { background: #ce1616; color: #000; }
 }
 
 /* Alert messages use plain text with \n line breaks (Ionic escapes HTML tags). */
