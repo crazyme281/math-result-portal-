@@ -34,7 +34,7 @@ ion-content {
   justify-content: center;
   min-height: 100%;
   padding: 16px;
-  background: #f3f5f9;
+  background: #2b509a;
 }
 
 .login-card {
@@ -442,7 +442,7 @@ ion-content {
 }
 
 .login-wrap {
-  background: #e8eef7 !important;
+  background: #113874 !important;
   min-height: 100vh !important;
 }
 
