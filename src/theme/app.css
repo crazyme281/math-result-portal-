@@ -429,3 +429,23 @@ ion-alert .alert-message {
   border-radius: 8px;
   margin-bottom: 12px;
 }
+/* ResultDesk website background */
+html,
+body,
+#root,
+#app,
+ion-app,
+.ion-page,
+ion-content {
+  background-color: #e8eef7 !important;
+  --background: #e8eef7 !important;
+}
+
+.login-wrap {
+  background: #e8eef7 !important;
+  min-height: 100vh !important;
+}
+
+.login-card {
+  background: #ffffff !important;
+}
