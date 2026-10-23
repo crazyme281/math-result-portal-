@@ -1,0 +1,85 @@
+-- ResultDesk database - step 1 of 7: tables, constraints, indexes.
+-- Run the seven files in order in the Supabase SQL editor (01 to 07) on an empty project.
+
+create table public.institutions (id uuid default gen_random_uuid() not null, code text not null, name text not null, heading text not null, uses_gpa boolean default false not null, sort_order integer default 0 not null, uses_approval boolean default true not null);
+create table public.faculties (id uuid default gen_random_uuid() not null, name text not null, source text default 'secondary' not null, sort_order integer default 0 not null, matric_fixed text, institution_id uuid not null);
+create table public.departments (id uuid default gen_random_uuid() not null, faculty_id uuid not null, name text not null, verified boolean default false not null, created_by uuid);
+create table public.profiles (id uuid not null, full_name text, faculty_id uuid, department_id uuid, created_at timestamptz default now() not null, institution_id uuid not null, role text default 'lecturer' not null);
+create table public.grading_scale (min_score numeric not null, grade text not null, status text not null, institution_id uuid not null, grade_point numeric);
+create table public.degree_classes (institution_id uuid not null, min_cgpa numeric not null, name text not null);
+create table public.students (id uuid default gen_random_uuid() not null, matric_no text not null, matric_norm text generated always as (upper(trim(both from matric_no))) stored, name text not null, jamb_reg_no text, faculty_id uuid, created_by uuid default auth.uid() not null, created_at timestamptz default now() not null, updated_at timestamptz default now() not null, institution_id uuid not null);
+create table public.result_sheets (id uuid default gen_random_uuid() not null, owner_id uuid default auth.uid() not null, university text default 'UNIVERSITY OF CALABAR, CALABAR' not null, faculty_id uuid not null, department_id uuid not null, academic_session text not null, result_title text default 'UNDERGRADUATE RESULT SCORES' not null, course_code text not null, course_title text not null, semester text default 'FIRST' not null, level text default '100' not null, credit_unit integer default 2 not null, examiners text, hod text, released_to text, sign_date text, status text default 'draft' not null, created_at timestamptz default now() not null, updated_at timestamptz default now() not null, matric_fixed text, institution_id uuid not null, status_changed_by uuid, status_changed_at timestamptz);
+create table public.result_students (id uuid default gen_random_uuid() not null, sheet_id uuid not null, sort_order integer default 0 not null, matric_no text not null, jamb_reg_no text, name text not null, script_no text, ca numeric(5,2), exam numeric(5,2), total numeric(6,2) generated always as (coalesce(ca, 0::numeric) + coalesce(exam, 0::numeric)) stored, student_id uuid);
+create table public.audit_log (id bigint generated always as identity not null, at timestamptz default now() not null, actor_id uuid, actor_name text, institution_id uuid not null, sheet_id uuid, sheet_code text, action text not null, details jsonb default '{}'::jsonb not null);
+
+alter table public.audit_log add constraint audit_log_pkey primary key (id);
+alter table public.degree_classes add constraint degree_classes_pkey primary key (institution_id, min_cgpa);
+alter table public.departments add constraint departments_pkey primary key (id);
+alter table public.faculties add constraint faculties_pkey primary key (id);
+alter table public.grading_scale add constraint grading_scale_pkey primary key (institution_id, min_score);
+alter table public.institutions add constraint institutions_pkey primary key (id);
+alter table public.profiles add constraint profiles_pkey primary key (id);
+alter table public.result_sheets add constraint result_sheets_pkey primary key (id);
+alter table public.result_students add constraint result_students_pkey primary key (id);
+alter table public.students add constraint students_pkey primary key (id);
+alter table public.departments add constraint departments_faculty_id_name_key unique (faculty_id, name);
+alter table public.faculties add constraint faculties_inst_name_key unique (institution_id, name);
+alter table public.institutions add constraint institutions_code_key unique (code);
+alter table public.institutions add constraint institutions_name_key unique (name);
+
+alter table public.faculties add constraint faculties_matric_fixed_check check (matric_fixed is null or matric_fixed ~ '^/[0-9]+$');
+alter table public.faculties add constraint faculties_source_check check (source in ('official_site', 'secondary'));
+alter table public.grading_scale add constraint grading_scale_status_check check (status in ('PASS', 'FAIL'));
+alter table public.profiles add constraint profiles_role_check check (role in ('lecturer', 'exam_officer', 'hod', 'admin'));
+alter table public.result_sheets add constraint result_sheets_credit_unit_check check (credit_unit >= 0 and credit_unit <= 30);
+alter table public.result_sheets add constraint result_sheets_level_check check (level in ('100', '200', '300', '400', '500', '600'));
+alter table public.result_sheets add constraint result_sheets_matric_fixed_check check (matric_fixed is null or matric_fixed ~ '^/[0-9]+$');
+alter table public.result_sheets add constraint result_sheets_semester_check check (semester in ('FIRST', 'SECOND', 'SUMMER'));
+alter table public.result_sheets add constraint result_sheets_status_check check (status in ('draft', 'submitted', 'approved', 'locked'));
+alter table public.result_students add constraint result_students_ca_check check (ca >= 0 and ca <= 30);
+alter table public.result_students add constraint result_students_exam_check check (exam >= 0 and exam <= 70);
+
+alter table public.audit_log add constraint audit_log_actor_id_fkey foreign key (actor_id) references auth.users(id) on delete set null;
+alter table public.audit_log add constraint audit_log_institution_id_fkey foreign key (institution_id) references public.institutions(id);
+alter table public.degree_classes add constraint degree_classes_institution_id_fkey foreign key (institution_id) references public.institutions(id) on delete cascade;
+alter table public.departments add constraint departments_created_by_fkey foreign key (created_by) references auth.users(id) on delete set null;
+alter table public.departments add constraint departments_faculty_id_fkey foreign key (faculty_id) references public.faculties(id) on delete cascade;
+alter table public.faculties add constraint faculties_institution_id_fkey foreign key (institution_id) references public.institutions(id);
+alter table public.grading_scale add constraint grading_scale_institution_id_fkey foreign key (institution_id) references public.institutions(id);
+alter table public.profiles add constraint profiles_department_id_fkey foreign key (department_id) references public.departments(id) on delete set null;
+alter table public.profiles add constraint profiles_faculty_id_fkey foreign key (faculty_id) references public.faculties(id) on delete set null;
+alter table public.profiles add constraint profiles_id_fkey foreign key (id) references auth.users(id) on delete cascade;
+alter table public.profiles add constraint profiles_institution_id_fkey foreign key (institution_id) references public.institutions(id);
+alter table public.result_sheets add constraint result_sheets_department_id_fkey foreign key (department_id) references public.departments(id);
+alter table public.result_sheets add constraint result_sheets_faculty_id_fkey foreign key (faculty_id) references public.faculties(id);
+alter table public.result_sheets add constraint result_sheets_institution_id_fkey foreign key (institution_id) references public.institutions(id);
+alter table public.result_sheets add constraint result_sheets_owner_id_fkey foreign key (owner_id) references auth.users(id) on delete cascade;
+alter table public.result_sheets add constraint result_sheets_owner_profile_fk foreign key (owner_id) references public.profiles(id) on delete cascade;
+alter table public.result_sheets add constraint result_sheets_status_changed_by_fkey foreign key (status_changed_by) references auth.users(id) on delete set null;
+alter table public.result_students add constraint result_students_sheet_id_fkey foreign key (sheet_id) references public.result_sheets(id) on delete cascade;
+alter table public.result_students add constraint result_students_student_id_fkey foreign key (student_id) references public.students(id) on delete set null;
+alter table public.students add constraint students_created_by_fkey foreign key (created_by) references auth.users(id) on delete cascade;
+alter table public.students add constraint students_faculty_id_fkey foreign key (faculty_id) references public.faculties(id) on delete set null;
+alter table public.students add constraint students_institution_id_fkey foreign key (institution_id) references public.institutions(id);
+
+create index audit_actor_idx on public.audit_log (actor_id);
+create index audit_inst_idx on public.audit_log (institution_id, at desc);
+create index audit_sheet_idx on public.audit_log (sheet_id, at desc);
+create index departments_created_by_idx on public.departments (created_by);
+create index departments_faculty_idx on public.departments (faculty_id);
+create index faculties_institution_idx on public.faculties (institution_id);
+create index profiles_department_idx on public.profiles (department_id);
+create index profiles_faculty_idx on public.profiles (faculty_id);
+create index profiles_institution_idx on public.profiles (institution_id);
+create unique index profiles_one_hod_per_dept on public.profiles (department_id) where role = 'hod';
+create index result_sheets_department_idx on public.result_sheets (department_id);
+create index result_sheets_faculty_idx on public.result_sheets (faculty_id);
+create index result_sheets_institution_idx on public.result_sheets (institution_id);
+create index result_sheets_owner_idx on public.result_sheets (owner_id);
+create index result_sheets_status_by_idx on public.result_sheets (status_changed_by);
+create unique index result_students_matric_uq on public.result_students (sheet_id, upper(matric_no)) where trim(both from matric_no) <> '';
+create index result_students_sheet_idx on public.result_students (sheet_id);
+create index result_students_student_idx on public.result_students (student_id);
+create index students_created_by_idx on public.students (created_by);
+create index students_faculty_idx on public.students (faculty_id);
+create unique index students_inst_matric_uq on public.students (institution_id, matric_norm);
